@@ -5,6 +5,7 @@ description = "A Python-based to-do tool with MCP integration"
 dependencies = [
     "mcp",
     "rich",
+    "pytest",
 ]
 
 [build-system]

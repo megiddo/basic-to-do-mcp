@@ -40,5 +40,17 @@ def init_db(agent_name):
     )
     ''')
     
+    # Create artifacts table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS artifacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        mimetype TEXT,
+        type TEXT CHECK(type IN ('URL', 'Content', 'File')),
+        FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    )
+    ''')
+    
     conn.commit()
     conn.close()

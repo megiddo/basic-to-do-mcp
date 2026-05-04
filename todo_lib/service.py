@@ -61,6 +61,9 @@ def get_task(agent_name, task_id):
         cursor.execute('SELECT * FROM updates WHERE task_id = ? ORDER BY date DESC', (task_id,))
         task['updates'] = cursor.fetchall()
         
+        cursor.execute('SELECT * FROM artifacts WHERE task_id = ?', (task_id,))
+        task['artifacts'] = cursor.fetchall()
+        
         cursor.execute('SELECT id, title FROM tasks WHERE subtask_of = ?', (task_id,))
         task['subtasks'] = cursor.fetchall()
     conn.close()
@@ -89,6 +92,27 @@ def delete_update(agent_name, update_id):
     conn = get_connection(agent_name)
     cursor = conn.cursor()
     cursor.execute('DELETE FROM updates WHERE id = ?', (update_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+def add_artifact(agent_name, task_id, content, mimetype=None, artifact_type='Content'):
+    init_db(agent_name)
+    conn = get_connection(agent_name)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO artifacts (task_id, content, mimetype, type)
+        VALUES (?, ?, ?, ?)
+    ''', (task_id, content, mimetype, artifact_type))
+    conn.commit()
+    conn.close()
+    return True
+
+def delete_artifact(agent_name, artifact_id):
+    init_db(agent_name)
+    conn = get_connection(agent_name)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM artifacts WHERE id = ?', (artifact_id,))
     conn.commit()
     conn.close()
     return True

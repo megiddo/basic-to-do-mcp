@@ -3,6 +3,7 @@ import json
 from todo_lib import (
     create_task, update_task, delete_task, get_task,
     create_update, update_update, delete_update,
+    add_artifact, delete_artifact,
     get_tasks_by_urgency
 )
 
@@ -29,7 +30,7 @@ def delete_todo_task(agent_name: str, task_id: int) -> str:
 
 @mcp.tool()
 def get_todo_task(agent_name: str, task_id: int) -> str:
-    """Get details of a specific task including its updates for a specific agent."""
+    """Get details of a specific task including its updates and artifacts for a specific agent."""
     task = get_task(agent_name, task_id)
     if not task:
         return f"Task {task_id} not found for agent {agent_name}."
@@ -40,6 +41,14 @@ def add_todo_update(agent_name: str, task_id: int, comment: str) -> str:
     """Add a comment or update to a specific task for a specific agent."""
     create_update(agent_name, task_id, comment)
     return f"Update added to task {task_id} for agent {agent_name}."
+
+@mcp.tool()
+def add_todo_artifact(agent_name: str, task_id: int, content: str, artifact_type: str = 'Content', mimetype: str = None) -> str:
+    """Add an artifact (URL, text note, or file path) to a specific task for a specific agent.
+    artifact_type should be one of 'URL', 'Content', or 'File'.
+    """
+    add_artifact(agent_name, task_id, content, mimetype, artifact_type)
+    return f"Artifact added to task {task_id} for agent {agent_name}."
 
 @mcp.tool()
 def get_urgent_tasks(agent_name: str) -> str:
