@@ -3,7 +3,9 @@ from todo_lib import (
     create_task, update_task, delete_task, get_task,
     create_update, update_update, delete_update,
     add_artifact, delete_artifact,
-    get_tasks_by_urgency
+    get_tasks_by_urgency,
+    list_collections, create_collection, delete_collection,
+    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week
 )
 
 def test_task_lifecycle(test_agent):
@@ -68,3 +70,46 @@ def test_urgency_report(test_agent):
     assert report[0]["priority"] == "urgent"
     assert report[1]["priority"] == "medium"
     assert report[2]["priority"] == "low"
+
+def test_collections(test_agent):
+    # List (should have 'default')
+    cols = list_collections(test_agent)
+    assert "default" in cols
+    
+    # Create
+    assert create_collection(test_agent, "Work") is True
+    assert "Work" in list_collections(test_agent)
+    
+    # Task in collection
+    task = create_task(test_agent, "Work Task", collection="Work")
+    assert task["collection"] == "Work"
+    
+    # Report by collection
+    work_tasks = get_tasks_by_urgency(test_agent, collection="Work")
+    assert len(work_tasks) == 1
+    assert work_tasks[0]["title"] == "Work Task"
+    
+    # Delete collection
+    assert delete_collection(test_agent, "Work") is True
+    assert "Work" not in list_collections(test_agent)
+    
+    # Task should move to default
+    task_after = get_task(test_agent, task["id"])
+    assert task_after["collection"] == "default"
+
+def test_date_reporting(test_agent):
+    from datetime import datetime, timedelta
+    # Far future
+    future = (datetime.now() + timedelta(days=30)).isoformat()
+    # Past
+    yesterday = (datetime.now() - timedelta(days=1)).isoformat()
+    # Today (end of day to be safe)
+    today = datetime.now().replace(hour=23, minute=59, second=59).isoformat()
+    
+    create_task(test_agent, "Yesterday Task", date_due=yesterday)
+    create_task(test_agent, "Today Task", date_due=today)
+    create_task(test_agent, "Future Task", date_due=future)
+    
+    assert len(get_tasks_due_today(test_agent)) == 1
+    assert len(get_tasks_past_due(test_agent)) == 1
+    assert len(get_tasks_due_next_week(test_agent)) == 1 # Only Today, Future is far away

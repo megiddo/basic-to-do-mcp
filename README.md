@@ -31,13 +31,18 @@ The `todo_cli.py` script provides a command-line interface. Every command requir
 - `--format {plain,json,markdown}`: Specify the output format (default: plain).
 
 ### Commands
-- `create`: Create a new task.
-- `update`: Update an existing task.
+- `create`: Create a new task. Supports `--collection`.
+- `update`: Update an existing task. Supports `--collection`.
 - `delete`: Delete a task.
 - `get`: Get task details (includes updates, subtasks, and artifacts).
 - `add-update`: Add a comment to a task.
 - `add-artifact`: Add an artifact (URL, Content, or File) to a task.
-- `report`: Get tasks ordered by urgency.
+- `collections`: Manage collections (`list`, `add`, `delete`).
+- `report`: Get tasks. Use flags for filtering:
+  - `--today`: Tasks due today.
+  - `--past-due`: Tasks past due.
+  - `--next-week`: Tasks due in the next 7 days.
+  - `--collection`: Filter by specific collection.
 
 ### Examples
 
@@ -68,7 +73,13 @@ The `todo_mcp.py` script implements a FastMCP server.
 - `get_todo_task`: Retrieves details including updates and artifacts.
 - `add_todo_update`: Adds a comment to a task.
 - `add_todo_artifact`: Adds an artifact (URL, Content, or File) to a task.
-- `get_urgent_tasks`: Returns an urgency report for an agent.
+- `get_urgent_tasks`: Returns an urgency report.
+- `list_todo_collections`: Lists all collections.
+- `create_todo_collection`: Creates a new collection.
+- `delete_todo_collection`: Deletes a collection.
+- `get_tasks_due_today_tool`: Returns tasks due today.
+- `get_tasks_past_due_tool`: Returns past due tasks.
+- `get_tasks_due_next_week_tool`: Returns tasks due within 7 days.
 
 ## Database
 

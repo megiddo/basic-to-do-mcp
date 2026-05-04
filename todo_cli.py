@@ -6,7 +6,9 @@ from todo_lib import (
     create_task, update_task, delete_task, get_task,
     create_update, update_update, delete_update,
     add_artifact, delete_artifact,
-    get_tasks_by_urgency
+    get_tasks_by_urgency,
+    list_collections, create_collection, delete_collection,
+    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week
 )
 
 def format_output(data, format_type):
@@ -74,6 +76,7 @@ def main():
     p_create.add_argument("--due", help="Due date (ISO format)")
     p_create.add_argument("--priority", choices=['low', 'medium', 'high', 'urgent'], default='medium')
     p_create.add_argument("--subtask-of", type=int, help="ID of parent task")
+    p_create.add_argument("--collection", default="default", help="Collection name")
     
     # Update Task
     p_update = subparsers.add_parser("update", parents=[common_parser], help="Update a task")
@@ -83,6 +86,7 @@ def main():
     p_update.add_argument("--due", help="New due date")
     p_update.add_argument("--status", choices=['created', 'in-progress', 'complete'])
     p_update.add_argument("--priority", choices=['low', 'medium', 'high', 'urgent'])
+    p_update.add_argument("--collection", help="New collection name")
     
     # Delete Task
     p_delete = subparsers.add_parser("delete", parents=[common_parser], help="Delete a task")
@@ -104,8 +108,17 @@ def main():
     p_add_art.add_argument("--type", choices=['URL', 'Content', 'File'], default='Content', help="Type of artifact")
     p_add_art.add_argument("--mimetype", help="MIME type (e.g. application/pdf, image/png)")
     
+    # Collections
+    p_cols = subparsers.add_parser("collections", parents=[common_parser], help="Manage collections")
+    p_cols.add_argument("action", choices=['list', 'add', 'delete'])
+    p_cols.add_argument("name", nargs='?', help="Collection name")
+    
     # Report
     p_report = subparsers.add_parser("report", parents=[common_parser], help="Get tasks by urgency")
+    p_report.add_argument("--today", action="store_true", help="Tasks due today")
+    p_report.add_argument("--past-due", action="store_true", help="Tasks past due")
+    p_report.add_argument("--next-week", action="store_true", help="Tasks due in the next week")
+    p_report.add_argument("--collection", help="Filter by collection")
     
     args = parser.parse_args()
     
@@ -114,7 +127,7 @@ def main():
         title = args.title_opt or args.title_pos
         if not title:
             p_create.error("the following arguments are required: title")
-        result = create_task(args.agent, title, args.desc, args.due, args.priority, args.subtask_of)
+        result = create_task(args.agent, title, args.desc, args.due, args.priority, args.subtask_of, args.collection)
     elif args.command == "update":
         kwargs = {k: v for k, v in vars(args).items() if v is not None and k not in ['command', 'id', 'format', 'agent']}
         result = update_task(args.agent, args.id, **kwargs)
@@ -126,8 +139,24 @@ def main():
         result = create_update(args.agent, args.id, args.comment)
     elif args.command == "add-artifact":
         result = add_artifact(args.agent, args.id, args.content, args.mimetype, args.type)
+    elif args.command == "collections":
+        if args.action == "list":
+            result = list_collections(args.agent)
+        elif args.action == "add":
+            if not args.name: p_cols.error("name is required for add")
+            result = create_collection(args.agent, args.name)
+        elif args.action == "delete":
+            if not args.name: p_cols.error("name is required for delete")
+            result = delete_collection(args.agent, args.name)
     elif args.command == "report":
-        result = get_tasks_by_urgency(args.agent)
+        if args.today:
+            result = get_tasks_due_today(args.agent, args.collection)
+        elif args.past_due:
+            result = get_tasks_past_due(args.agent, args.collection)
+        elif args.next_week:
+            result = get_tasks_due_next_week(args.agent, args.collection)
+        else:
+            result = get_tasks_by_urgency(args.agent, args.collection)
     else:
         parser.print_help()
         return

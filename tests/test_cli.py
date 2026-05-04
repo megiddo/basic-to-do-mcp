@@ -45,3 +45,19 @@ def test_cli_get_task(test_agent, capsys, monkeypatch):
     
     out, err = capsys.readouterr()
     assert "'title': 'Get Me'" in out
+
+def test_cli_collections(test_agent, capsys, monkeypatch):
+    # Add collection
+    args = ["todo_cli.py", "--agent", test_agent, "collections", "add", "Personal"]
+    monkeypatch.setattr(sys, 'argv', args)
+    main()
+    capsys.readouterr() # Clear output
+    
+    # List collections
+    args = ["todo_cli.py", "--agent", test_agent, "collections", "list"]
+    monkeypatch.setattr(sys, 'argv', args)
+    main()
+    
+    out, err = capsys.readouterr()
+    assert "Personal" in out
+    assert "default" in out
