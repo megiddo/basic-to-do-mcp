@@ -8,8 +8,10 @@ from todo_lib import (
     add_artifact, delete_artifact,
     get_tasks_by_urgency,
     list_collections, create_collection, delete_collection,
-    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week
+    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week,
+    list_agents, install_library
 )
+from todo_lib.config import InvalidAgent, InvalidConfiguration
 
 def format_output(data, format_type):
     if format_type == 'json':
@@ -64,9 +66,16 @@ def main():
     common_parser.add_argument("--format", choices=['plain', 'json', 'markdown'], default='plain', help="Output format")
 
     parser = argparse.ArgumentParser(description="Multi-Agent To-Do Tool CLI", parents=[common_parser])
-    parser.add_argument("--agent", required=True, help="Agent name/keyword for namespace resolution")
+    parser.add_argument("--agent", help="Agent name/keyword for namespace resolution")
     
     subparsers = parser.add_subparsers(dest="command", help="Commands")
+
+    # List Agents
+    subparsers.add_parser("list-agents", parents=[common_parser], help="List authorized agents")
+
+    # Install
+    subparsers.add_parser("install", parents=[common_parser], help="Initialize configuration and database directory")
+
     
     # Create Task
     p_create = subparsers.add_parser("create", parents=[common_parser], help="Create a task")
@@ -122,46 +131,61 @@ def main():
     
     args = parser.parse_args()
     
-    result = None
-    if args.command == "create":
-        title = args.title_opt or args.title_pos
-        if not title:
-            p_create.error("the following arguments are required: title")
-        result = create_task(args.agent, title, args.desc, args.due, args.priority, args.subtask_of, args.collection)
-    elif args.command == "update":
-        kwargs = {k: v for k, v in vars(args).items() if v is not None and k not in ['command', 'id', 'format', 'agent']}
-        result = update_task(args.agent, args.id, **kwargs)
-    elif args.command == "delete":
-        result = delete_task(args.agent, args.id)
-    elif args.command == "get":
-        result = get_task(args.agent, args.id)
-    elif args.command == "add-update":
-        result = create_update(args.agent, args.id, args.comment)
-    elif args.command == "add-artifact":
-        result = add_artifact(args.agent, args.id, args.content, args.mimetype, args.type)
-    elif args.command == "collections":
-        if args.action == "list":
-            result = list_collections(args.agent)
-        elif args.action == "add":
-            if not args.name: p_cols.error("name is required for add")
-            result = create_collection(args.agent, args.name)
-        elif args.action == "delete":
-            if not args.name: p_cols.error("name is required for delete")
-            result = delete_collection(args.agent, args.name)
-    elif args.command == "report":
-        if args.today:
-            result = get_tasks_due_today(args.agent, args.collection)
-        elif args.past_due:
-            result = get_tasks_past_due(args.agent, args.collection)
-        elif args.next_week:
-            result = get_tasks_due_next_week(args.agent, args.collection)
+    try:
+        result = None
+        if args.command == "list-agents":
+            result = list_agents()
+        elif args.command == "install":
+            result = install_library()
+        elif args.command in ["create", "update", "delete", "get", "add-update", "add-artifact", "collections", "report"]:
+            if not args.agent:
+                parser.error(f"the following arguments are required: --agent (required for {args.command})")
+            
+            if args.command == "create":
+                title = args.title_opt or args.title_pos
+                if not title:
+                    p_create.error("the following arguments are required: title")
+                result = create_task(args.agent, title, args.desc, args.due, args.priority, args.subtask_of, args.collection)
+            elif args.command == "update":
+                kwargs = {k: v for k, v in vars(args).items() if v is not None and k not in ['command', 'id', 'format', 'agent']}
+                result = update_task(args.agent, args.id, **kwargs)
+            elif args.command == "delete":
+                result = delete_task(args.agent, args.id)
+            elif args.command == "get":
+                result = get_task(args.agent, args.id)
+            elif args.command == "add-update":
+                result = create_update(args.agent, args.id, args.comment)
+            elif args.command == "add-artifact":
+                result = add_artifact(args.agent, args.id, args.content, args.mimetype, args.type)
+            elif args.command == "collections":
+                if args.action == "list":
+                    result = list_collections(args.agent)
+                elif args.action == "add":
+                    if not args.name: p_cols.error("name is required for add")
+                    result = create_collection(args.agent, args.name)
+                elif args.action == "delete":
+                    if not args.name: p_cols.error("name is required for delete")
+                    result = delete_collection(args.agent, args.name)
+            elif args.command == "report":
+                if args.today:
+                    result = get_tasks_due_today(args.agent, args.collection)
+                elif args.past_due:
+                    result = get_tasks_past_due(args.agent, args.collection)
+                elif args.next_week:
+                    result = get_tasks_due_next_week(args.agent, args.collection)
+                else:
+                    result = get_tasks_by_urgency(args.agent, args.collection)
         else:
-            result = get_tasks_by_urgency(args.agent, args.collection)
-    else:
-        parser.print_help()
-        return
+            parser.print_help()
+            return
 
-    print(format_output(result, args.format))
+        print(format_output(result, args.format))
+    except (InvalidAgent, InvalidConfiguration) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

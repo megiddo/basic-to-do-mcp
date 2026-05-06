@@ -6,6 +6,7 @@ dependencies = [
     "mcp",
     "rich",
     "pytest",
+    "python-dotenv",
 ]
 
 [build-system]
