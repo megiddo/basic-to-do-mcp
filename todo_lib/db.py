@@ -1,9 +1,10 @@
 import sqlite3
 import os
 from datetime import datetime
+from .config import get_db_root
 
 def get_db_path(agent_name):
-    return f"todo_{agent_name}.db"
+    return os.path.join(get_db_root(), f"todo_{agent_name.lower()}.db")
 
 def get_connection(agent_name):
     return sqlite3.connect(get_db_path(agent_name))

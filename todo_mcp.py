@@ -6,10 +6,17 @@ from todo_lib import (
     add_artifact, delete_artifact,
     get_tasks_by_urgency, get_tasks_by_date_range,
     list_collections, create_collection, delete_collection,
-    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week
+    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week,
+    list_agents
 )
 
 mcp = FastMCP("Multi-Agent Todo Manager")
+
+@mcp.tool()
+def list_todo_agents() -> str:
+    """List all authorized agents."""
+    agents = list_agents()
+    return json.dumps(agents, indent=2)
 
 @mcp.tool()
 def create_todo_task(agent_name: str, title: str, description: str = None, date_due: str = None, priority: str = 'medium', subtask_of: int = None, collection: str = 'default') -> str:

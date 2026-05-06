@@ -5,5 +5,6 @@ from .service import (
     add_artifact, delete_artifact,
     get_tasks_by_urgency, get_tasks_by_date_range,
     list_collections, create_collection, delete_collection,
-    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week
+    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week,
+    list_agents, install_library
 )
