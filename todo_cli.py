@@ -6,7 +6,7 @@ from todo_lib import (
     create_task, update_task, delete_task, get_task,
     create_update, update_update, delete_update,
     add_artifact, delete_artifact,
-    get_tasks_by_urgency,
+    get_tasks_by_urgency, get_tasks_by_date_range,
     list_collections, create_collection, delete_collection,
     get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week
 )
@@ -63,8 +63,13 @@ def main():
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument("--format", choices=['plain', 'json', 'markdown'], default='plain', help="Output format")
 
+<<<<<<< Updated upstream
     parser = argparse.ArgumentParser(description="Multi-Agent To-Do Tool CLI", parents=[common_parser])
     parser.add_argument("--agent", required=True, help="Agent name/keyword for namespace resolution")
+=======
+    parser = argparse.ArgumentParser(description="Multi-Agent To-Do Tool CLI")
+    parser.add_argument("--agent", help="Agent name/keyword for namespace resolution")
+>>>>>>> Stashed changes
     
     subparsers = parser.add_subparsers(dest="command", help="Commands")
     
@@ -108,6 +113,19 @@ def main():
     p_add_art.add_argument("--type", choices=['URL', 'Content', 'File'], default='Content', help="Type of artifact")
     p_add_art.add_argument("--mimetype", help="MIME type (e.g. application/pdf, image/png)")
     
+    # Update Update
+    p_upd_upd = subparsers.add_parser("update-update", parents=[common_parser], help="Update an existing comment/update")
+    p_upd_upd.add_argument("id", type=int, help="Update ID")
+    p_upd_upd.add_argument("comment", help="New comment content")
+
+    # Delete Update
+    p_del_upd = subparsers.add_parser("delete-update", parents=[common_parser], help="Delete a comment/update")
+    p_del_upd.add_argument("id", type=int, help="Update ID")
+
+    # Delete Artifact
+    p_del_art = subparsers.add_parser("delete-artifact", parents=[common_parser], help="Delete an artifact")
+    p_del_art.add_argument("id", type=int, help="Artifact ID")
+    
     # Collections
     p_cols = subparsers.add_parser("collections", parents=[common_parser], help="Manage collections")
     p_cols.add_argument("action", choices=['list', 'add', 'delete'])
@@ -118,10 +136,13 @@ def main():
     p_report.add_argument("--today", action="store_true", help="Tasks due today")
     p_report.add_argument("--past-due", action="store_true", help="Tasks past due")
     p_report.add_argument("--next-week", action="store_true", help="Tasks due in the next week")
+    p_report.add_argument("--start", help="Start date (YYYY-MM-DD)")
+    p_report.add_argument("--end", help="End date (YYYY-MM-DD)")
     p_report.add_argument("--collection", help="Filter by collection")
     
     args = parser.parse_args()
     
+<<<<<<< Updated upstream
     result = None
     if args.command == "create":
         title = args.title_opt or args.title_pos
@@ -155,6 +176,60 @@ def main():
             result = get_tasks_past_due(args.agent, args.collection)
         elif args.next_week:
             result = get_tasks_due_next_week(args.agent, args.collection)
+=======
+    try:
+        result = None
+        if args.command == "list-agents":
+            result = list_agents()
+        elif args.command == "install":
+            result = install_library()
+        elif args.command in ["create", "update", "delete", "get", "add-update", "add-artifact", "update-update", "delete-update", "delete-artifact", "collections", "report"]:
+            if not args.agent:
+                parser.error(f"the following arguments are required: --agent (required for {args.command})")
+            
+            if args.command == "create":
+                title = args.title_opt or args.title_pos
+                if not title:
+                    p_create.error("the following arguments are required: title")
+                result = create_task(args.agent, title, args.desc, args.due, args.priority, args.subtask_of, args.collection)
+            elif args.command == "update":
+                kwargs = {k: v for k, v in vars(args).items() if v is not None and k not in ['command', 'id', 'format', 'agent']}
+                result = update_task(args.agent, args.id, **kwargs)
+            elif args.command == "delete":
+                result = delete_task(args.agent, args.id)
+            elif args.command == "get":
+                result = get_task(args.agent, args.id)
+            elif args.command == "add-update":
+                result = create_update(args.agent, args.id, args.comment)
+            elif args.command == "add-artifact":
+                result = add_artifact(args.agent, args.id, args.content, args.mimetype, args.type)
+            elif args.command == "collections":
+                if args.action == "list":
+                    result = list_collections(args.agent)
+                elif args.action == "add":
+                    if not args.name: p_cols.error("name is required for add")
+                    result = create_collection(args.agent, args.name)
+                elif args.action == "delete":
+                    if not args.name: p_cols.error("name is required for delete")
+                    result = delete_collection(args.agent, args.name)
+            elif args.command == "report":
+                if args.today:
+                    result = get_tasks_due_today(args.agent, args.collection)
+                elif args.past_due:
+                    result = get_tasks_past_due(args.agent, args.collection)
+                elif args.next_week:
+                    result = get_tasks_due_next_week(args.agent, args.collection)
+                elif args.start or args.end:
+                    result = get_tasks_by_date_range(args.agent, args.start, args.end, collection=args.collection)
+                else:
+                    result = get_tasks_by_urgency(args.agent, args.collection)
+            elif args.command == "update-update":
+                result = update_update(args.agent, args.id, args.comment)
+            elif args.command == "delete-update":
+                result = delete_update(args.agent, args.id)
+            elif args.command == "delete-artifact":
+                result = delete_artifact(args.agent, args.id)
+>>>>>>> Stashed changes
         else:
             result = get_tasks_by_urgency(args.agent, args.collection)
     else:
