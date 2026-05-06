@@ -1,5 +1,8 @@
 from .db import get_connection, init_db
 from datetime import datetime, timedelta
+from .config import validate_agent, get_agents, get_db_root, InvalidAgent, InvalidConfiguration
+import os
+from pathlib import Path
 
 def dict_factory(cursor, row):
     d = {}
@@ -8,6 +11,7 @@ def dict_factory(cursor, row):
     return d
 
 def create_task(agent_name, title, description=None, date_due=None, priority='medium', subtask_of=None, collection='default'):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -21,6 +25,7 @@ def create_task(agent_name, title, description=None, date_due=None, priority='me
     return get_task(agent_name, task_id)
 
 def update_task(agent_name, task_id, **kwargs):
+    validate_agent(agent_name)
     init_db(agent_name)
     allowed_fields = {'title', 'description', 'date_due', 'status', 'priority', 'date_completed', 'subtask_of', 'collection'}
     fields_to_update = {k: v for k, v in kwargs.items() if k in allowed_fields}
@@ -42,6 +47,7 @@ def update_task(agent_name, task_id, **kwargs):
     return get_task(agent_name, task_id)
 
 def delete_task(agent_name, task_id):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -51,6 +57,7 @@ def delete_task(agent_name, task_id):
     return True
 
 def get_task(agent_name, task_id):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     conn.row_factory = dict_factory
@@ -70,6 +77,7 @@ def get_task(agent_name, task_id):
     return task
 
 def create_update(agent_name, task_id, comment):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -79,6 +87,7 @@ def create_update(agent_name, task_id, comment):
     return True
 
 def update_update(agent_name, update_id, comment):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -88,6 +97,7 @@ def update_update(agent_name, update_id, comment):
     return True
 
 def delete_update(agent_name, update_id):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -97,6 +107,7 @@ def delete_update(agent_name, update_id):
     return True
 
 def add_artifact(agent_name, task_id, content, mimetype=None, artifact_type='Content'):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -109,6 +120,7 @@ def add_artifact(agent_name, task_id, content, mimetype=None, artifact_type='Con
     return True
 
 def delete_artifact(agent_name, artifact_id):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -118,6 +130,7 @@ def delete_artifact(agent_name, artifact_id):
     return True
 
 def list_collections(agent_name):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -127,6 +140,7 @@ def list_collections(agent_name):
     return cols
 
 def create_collection(agent_name, name):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     cursor = conn.cursor()
@@ -136,6 +150,7 @@ def create_collection(agent_name, name):
     return True
 
 def delete_collection(agent_name, name):
+    validate_agent(agent_name)
     if name == 'default':
         return False
     init_db(agent_name)
@@ -151,6 +166,7 @@ def delete_collection(agent_name, name):
     return True
 
 def get_tasks_by_date_range(agent_name, start_date=None, end_date=None, is_past_due=False, collection=None):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     conn.row_factory = dict_factory
@@ -197,6 +213,7 @@ def get_tasks_due_next_week(agent_name, collection=None):
     return get_tasks_by_date_range(agent_name, start_date=today_start, end_date=next_week, collection=collection)
 
 def get_tasks_by_urgency(agent_name, collection=None):
+    validate_agent(agent_name)
     init_db(agent_name)
     conn = get_connection(agent_name)
     conn.row_factory = dict_factory
@@ -224,3 +241,31 @@ def get_tasks_by_urgency(agent_name, collection=None):
     tasks = cursor.fetchall()
     conn.close()
     return tasks
+
+def list_agents():
+    """Return the list of authorized agents."""
+    return get_agents()
+
+def install_library():
+    """Create DB_FILE_ROOT and /etc/mcp/basic_todo/.env"""
+    db_root = get_db_root()
+    os.makedirs(db_root, exist_ok=True)
+    
+    etc_path = Path("/etc/mcp/basic_todo")
+    try:
+        etc_path.mkdir(parents=True, exist_ok=True)
+        env_path = etc_path / ".env"
+        if not env_path.exists():
+            with open(env_path, "w") as f:
+                f.write(f"AGENTS=alice,bob\nDB_FILE_ROOT={db_root}\n")
+            return f"Successfully installed to {etc_path} and created DB root at {db_root}"
+        else:
+            return f"Directories ensured. {env_path} already exists."
+    except PermissionError:
+        # Fallback to local .env if /etc is not writable
+        local_env = Path(__file__).parent.parent.absolute() / ".env"
+        if not local_env.exists():
+            with open(local_env, "w") as f:
+                f.write(f"AGENTS=alice,bob\nDB_FILE_ROOT={db_root}\n")
+            return f"Could not write to /etc (Permission Denied). Created local config at {local_env} and DB root at {db_root}"
+        return f"Could not write to /etc. Local config already exists at {local_env}."
