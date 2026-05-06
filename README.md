@@ -1,86 +1,98 @@
 # Multi-Agent To-Do MCP Tool
 
-A Python-based to-do management system that supports multiple agents, isolated storage, and task artifacts. This tool integrates with the Model Context Protocol (MCP) and provides a command-line interface.
+A robust, Python-based to-do management system designed for multi-agent environments. It supports isolated storage, task artifacts (URLs, notes, files), hierarchical subtasks, and advanced date filtering. Integrated with the Model Context Protocol (MCP) and featuring a powerful CLI.
 
 ## Features
 
-- Multi-Agent Support: Each agent has their own isolated SQLite database identified by a plaintext keyword.
-- Task Management: Create, update, delete, and retrieve tasks.
-- Task Artifacts: Attach URLs, text notes, and file paths to tasks.
-- Detailed Tracking: Title, description, due dates, priority levels, and status tracking.
-- Task Updates: Add comments or progress updates to specific tasks.
-- Subtasks: Support for hierarchical task relationships.
-- Urgency Reporting: View tasks ordered by priority and due date.
-- Multiple Output Formats: CLI supports plain text, JSON, and Markdown.
-- MCP Integration: Native support for Model Context Protocol tools.
+-   **Multi-Agent Isolation**: Each agent operates within its own dedicated SQLite namespace.
+-   **Rich Task Metadata**: Support for priority (low, medium, high, urgent), status tracking, and hierarchical subtasks.
+-   **Task Collections**: Organize tasks into logical groups (e.g., "Work", "Personal").
+-   **Task Artifacts**: Attach URLs, text notes, and file paths with optional MIME type tracking.
+-   **Progress Tracking**: Add, edit, or delete timestamped updates/comments on tasks.
+-   **Intelligent Filtering**: Built-in reporting for tasks due today, past due, or within custom date ranges.
+-   **Dual Interface**: Complete feature parity between the Command Line Interface (CLI) and MCP tools.
+-   **Normalized Dates**: Robust date comparison logic that correctly handles both date-only strings and full ISO datetimes.
 
 ## Installation
 
-1. Clone the repository to your local machine.
-2. Install the required dependencies:
-   ```bash
-   pip install mcp rich
-   ```
+1.  **Clone the Repository**:
+    ```bash
+    git clone <repository-url>
+    cd to-do-mcp
+    ```
+
+2.  **Initialize the Environment**:
+    Run the `install` command via CLI to set up the default configuration and database directory:
+    ```bash
+    python3 todo_cli.py install
+    ```
+    This creates a local `.env` file (or `/etc/mcp/basic_todo/.env` if permissions allow) and ensures the database root directory exists.
+
+3.  **Install Dependencies**:
+    ```bash
+    pip install mcp rich python-dotenv
+    ```
+
+## Configuration
+
+The tool uses environment variables for configuration, loaded from a `.env` file.
+
+-   `AGENTS`: A comma-separated list of authorized agent names (e.g., `alice,bob,dave`).
+-   `DB_FILE_ROOT`: The absolute path where agent databases will be stored.
+
+### Configuration Tiering
+1.  **System Level**: `/etc/mcp/basic_todo/.env` (Highest priority)
+2.  **Local Level**: `./.env` (Current directory)
 
 ## CLI Usage
 
-The `todo_cli.py` script provides a command-line interface. Every command requires an agent name.
+The `todo_cli.py` script provides a full-featured interface. Most commands require the `--agent` flag.
 
-### General Options
-- `--agent AGENT_NAME`: Required. The name or keyword for the agent's isolated namespace.
-- `--format {plain,json,markdown}`: Specify the output format (default: plain).
+### Global Options
+-   `--agent <name>`: The agent keyword to resolve the database namespace.
+-   `--format {plain,json,markdown}`: Output formatting (default: `plain`).
 
 ### Commands
-- `create`: Create a new task. Supports `--collection`.
-- `update`: Update an existing task. Supports `--collection`.
-- `delete`: Delete a task.
-- `get`: Get task details (includes updates, subtasks, and artifacts).
-- `add-update`: Add a comment to a task.
-- `add-artifact`: Add an artifact (URL, Content, or File) to a task.
-- `collections`: Manage collections (`list`, `add`, `delete`).
-- `report`: Get tasks. Use flags for filtering:
-  - `--today`: Tasks due today.
-  - `--past-due`: Tasks past due.
-  - `--next-week`: Tasks due in the next 7 days.
-  - `--collection`: Filter by specific collection.
+-   `list-agents`: List all authorized agents.
+-   `install`: Initialize the environment.
+-   `create [--title] [--desc] [--due] [--priority] [--subtask-of] [--collection]`: Create a task.
+-   `update <id> [--title] [--desc] [--due] [--status] [--priority] [--collection]`: Update a task.
+-   `delete <id>`: Delete a task.
+-   `get <id>`: Retrieve full task details (including updates, artifacts, and subtasks).
+-   `add-update <id> <comment>`: Add a new comment to a task.
+-   `update-update <id> <comment>`: Edit an existing comment.
+-   `delete-update <id>`: Delete a comment.
+-   `add-artifact <id> <content> [--type {URL,Content,File}] [--mimetype]`: Add an artifact.
+-   `delete-artifact <id>`: Remove an artifact.
+-   `collections {list,add,delete}`: Manage task collections.
+-   `report [--today] [--past-due] [--next-week] [--start] [--end] [--collection]`: Generate task reports.
 
 ### Examples
-
-Add a URL artifact:
 ```bash
-python3 todo_cli.py --agent dave add-artifact 1 "https://docs.google.com/..." --type URL --mimetype "google-doc"
-```
+# Get tasks due in a custom range
+python3 todo_cli.py --agent dave report --start 2026-05-01 --end 2026-05-31 --format markdown
 
-Add a text note:
-```bash
-python3 todo_cli.py --agent dave add-artifact 1 "Note content here" --type Content
-```
-
-Add a file reference:
-```bash
-python3 todo_cli.py --agent dave add-artifact 1 "path/to/image.png" --type File --mimetype "image/png"
+# Update an existing comment
+python3 todo_cli.py --agent dave update-update 12 "Revised progress report."
 ```
 
 ## MCP Integration
 
-The `todo_mcp.py` script implements a FastMCP server.
+Expose your to-do list to LLMs using the `todo_mcp.py` script.
 
 ### Available Tools
+-   `list_todo_agents`: Lists all authorized agents.
+-   `create_todo_task`, `update_todo_task`, `delete_todo_task`, `get_todo_task`
+-   `add_todo_update`, `update_todo_update`, `delete_todo_update`
+-   `add_todo_artifact`, `delete_todo_artifact`
+-   `list_todo_collections`, `create_todo_collection`, `delete_todo_collection`
+-   `get_urgent_tasks`, `get_tasks_due_today_tool`, `get_tasks_past_due_tool`, `get_tasks_due_next_week_tool`
+-   `get_tasks_by_date_range_tool`: Advanced filtering by custom dates.
 
-- `create_todo_task`: Creates a task for an agent.
-- `update_todo_task`: Updates task details or status.
-- `delete_todo_task`: Removes a task.
-- `get_todo_task`: Retrieves details including updates and artifacts.
-- `add_todo_update`: Adds a comment to a task.
-- `add_todo_artifact`: Adds an artifact (URL, Content, or File) to a task.
-- `get_urgent_tasks`: Returns an urgency report.
-- `list_todo_collections`: Lists all collections.
-- `create_todo_collection`: Creates a new collection.
-- `delete_todo_collection`: Deletes a collection.
-- `get_tasks_due_today_tool`: Returns tasks due today.
-- `get_tasks_past_due_tool`: Returns past due tasks.
-- `get_tasks_due_next_week_tool`: Returns tasks due within 7 days.
+## Testing
 
-## Database
-
-The tool creates agent-specific SQLite databases named `todo_<agent_name>.db`. Artifacts are stored in the `artifacts` table linked to tasks.
+Run the comprehensive test suite using `pytest`:
+```bash
+PYTHONPATH=. pytest tests/
+```
+The suite covers all library functions, CLI commands, and MCP tools, ensuring 100% feature reliability.

@@ -152,7 +152,7 @@ def main():
             result = list_agents()
         elif args.command == "install":
             result = install_library()
-        elif args.command in ["create", "update", "delete", "get", "add-update", "add-artifact", "collections", "report"]:
+        elif args.command in ["create", "update", "delete", "get", "add-update", "add-artifact", "update-update", "delete-update", "delete-artifact", "collections", "report"]:
             if not args.agent:
                 parser.error(f"the following arguments are required: --agent (required for {args.command})")
             

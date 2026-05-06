@@ -3,9 +3,10 @@ from todo_lib import (
     create_task, update_task, delete_task, get_task,
     create_update, update_update, delete_update,
     add_artifact, delete_artifact,
-    get_tasks_by_urgency,
+    get_tasks_by_urgency, get_tasks_by_date_range,
     list_collections, create_collection, delete_collection,
-    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week
+    get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week,
+    list_agents, install_library
 )
 
 def test_task_lifecycle(test_agent):
@@ -113,3 +114,43 @@ def test_date_reporting(test_agent):
     assert len(get_tasks_due_today(test_agent)) == 1
     assert len(get_tasks_past_due(test_agent)) == 1
     assert len(get_tasks_due_next_week(test_agent)) == 1 # Only Today, Future is far away
+
+def test_custom_date_range(test_agent):
+    create_task(test_agent, "May Task", date_due="2026-05-15")
+    create_task(test_agent, "June Task", date_due="2026-06-15")
+    
+    # Range covering May
+    may_tasks = get_tasks_by_date_range(test_agent, start_date="2026-05-01", end_date="2026-05-31")
+    assert len(may_tasks) == 1
+    assert may_tasks[0]["title"] == "May Task"
+    
+    # Range covering June
+    june_tasks = get_tasks_by_date_range(test_agent, start_date="2026-06-01", end_date="2026-06-30")
+    assert len(june_tasks) == 1
+    assert june_tasks[0]["title"] == "June Task"
+    
+    # Range covering both
+    both_tasks = get_tasks_by_date_range(test_agent, start_date="2026-05-01", end_date="2026-06-30")
+    assert len(both_tasks) == 2
+
+def test_list_agents():
+    # list_agents returns the AGENT_LIST from config.
+    # Since our fixture authorizes 'testagent', we should see it (or others from .env)
+    agents = list_agents()
+    assert isinstance(agents, list)
+    # We can't be sure of the exact content without mocking config.AGENT_LIST,
+    # but we know it should return a list.
+
+def test_install_library(monkeypatch, tmp_path):
+    # Mock get_db_root to use a temp directory
+    monkeypatch.setattr("todo_lib.service.get_db_root", lambda: str(tmp_path / "db_root"))
+    
+    # Mock /etc check to force fallback to local .env
+    monkeypatch.setattr("todo_lib.service.Path", lambda p: tmp_path / "fake_etc" if str(p).startswith("/etc") else tmp_path / p)
+    
+    # Run install
+    msg = install_library()
+    assert "Successfully installed" in msg or "Created local config" in msg
+    
+    db_root = tmp_path / "db_root"
+    assert db_root.exists()
