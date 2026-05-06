@@ -180,16 +180,16 @@ def get_tasks_by_date_range(agent_name, start_date=None, end_date=None, is_past_
         params.append(collection)
         
     if is_past_due:
-        query += " AND date_due < ?"
+        query += " AND date(date_due) < date(?)"
         params.append(datetime.now().isoformat())
     elif start_date and end_date:
-        query += " AND date_due >= ? AND date_due <= ?"
+        query += " AND date(date_due) >= date(?) AND date(date_due) <= date(?)"
         params.extend([start_date, end_date])
     elif start_date:
-        query += " AND date_due >= ?"
+        query += " AND date(date_due) >= date(?)"
         params.append(start_date)
     elif end_date:
-        query += " AND date_due <= ?"
+        query += " AND date(date_due) <= date(?)"
         params.append(end_date)
         
     query += " ORDER BY date_due ASC, priority DESC"
@@ -200,17 +200,16 @@ def get_tasks_by_date_range(agent_name, start_date=None, end_date=None, is_past_
     return tasks
 
 def get_tasks_due_today(agent_name, collection=None):
-    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    today_end = datetime.now().replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
-    return get_tasks_by_date_range(agent_name, start_date=today_start, end_date=today_end, collection=collection)
+    today = datetime.now().date().isoformat()
+    return get_tasks_by_date_range(agent_name, start_date=today, end_date=today, collection=collection)
 
 def get_tasks_past_due(agent_name, collection=None):
     return get_tasks_by_date_range(agent_name, is_past_due=True, collection=collection)
 
 def get_tasks_due_next_week(agent_name, collection=None):
-    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    next_week = (datetime.now() + timedelta(days=7)).replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
-    return get_tasks_by_date_range(agent_name, start_date=today_start, end_date=next_week, collection=collection)
+    today = datetime.now().date().isoformat()
+    next_week = (datetime.now() + timedelta(days=7)).date().isoformat()
+    return get_tasks_by_date_range(agent_name, start_date=today, end_date=next_week, collection=collection)
 
 def get_tasks_by_urgency(agent_name, collection=None):
     validate_agent(agent_name)

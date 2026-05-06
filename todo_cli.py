@@ -6,7 +6,7 @@ from todo_lib import (
     create_task, update_task, delete_task, get_task,
     create_update, update_update, delete_update,
     add_artifact, delete_artifact,
-    get_tasks_by_urgency,
+    get_tasks_by_urgency, get_tasks_by_date_range,
     list_collections, create_collection, delete_collection,
     get_tasks_due_today, get_tasks_past_due, get_tasks_due_next_week,
     list_agents, install_library
@@ -65,7 +65,7 @@ def main():
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument("--format", choices=['plain', 'json', 'markdown'], default='plain', help="Output format")
 
-    parser = argparse.ArgumentParser(description="Multi-Agent To-Do Tool CLI", parents=[common_parser])
+    parser = argparse.ArgumentParser(description="Multi-Agent To-Do Tool CLI")
     parser.add_argument("--agent", help="Agent name/keyword for namespace resolution")
     
     subparsers = parser.add_subparsers(dest="command", help="Commands")
@@ -117,6 +117,19 @@ def main():
     p_add_art.add_argument("--type", choices=['URL', 'Content', 'File'], default='Content', help="Type of artifact")
     p_add_art.add_argument("--mimetype", help="MIME type (e.g. application/pdf, image/png)")
     
+    # Update Update
+    p_upd_upd = subparsers.add_parser("update-update", parents=[common_parser], help="Update an existing comment/update")
+    p_upd_upd.add_argument("id", type=int, help="Update ID")
+    p_upd_upd.add_argument("comment", help="New comment content")
+
+    # Delete Update
+    p_del_upd = subparsers.add_parser("delete-update", parents=[common_parser], help="Delete a comment/update")
+    p_del_upd.add_argument("id", type=int, help="Update ID")
+
+    # Delete Artifact
+    p_del_art = subparsers.add_parser("delete-artifact", parents=[common_parser], help="Delete an artifact")
+    p_del_art.add_argument("id", type=int, help="Artifact ID")
+    
     # Collections
     p_cols = subparsers.add_parser("collections", parents=[common_parser], help="Manage collections")
     p_cols.add_argument("action", choices=['list', 'add', 'delete'])
@@ -127,6 +140,8 @@ def main():
     p_report.add_argument("--today", action="store_true", help="Tasks due today")
     p_report.add_argument("--past-due", action="store_true", help="Tasks past due")
     p_report.add_argument("--next-week", action="store_true", help="Tasks due in the next week")
+    p_report.add_argument("--start", help="Start date (YYYY-MM-DD)")
+    p_report.add_argument("--end", help="End date (YYYY-MM-DD)")
     p_report.add_argument("--collection", help="Filter by collection")
     
     args = parser.parse_args()
@@ -173,8 +188,16 @@ def main():
                     result = get_tasks_past_due(args.agent, args.collection)
                 elif args.next_week:
                     result = get_tasks_due_next_week(args.agent, args.collection)
+                elif args.start or args.end:
+                    result = get_tasks_by_date_range(args.agent, args.start, args.end, collection=args.collection)
                 else:
                     result = get_tasks_by_urgency(args.agent, args.collection)
+            elif args.command == "update-update":
+                result = update_update(args.agent, args.id, args.comment)
+            elif args.command == "delete-update":
+                result = delete_update(args.agent, args.id)
+            elif args.command == "delete-artifact":
+                result = delete_artifact(args.agent, args.id)
         else:
             parser.print_help()
             return
